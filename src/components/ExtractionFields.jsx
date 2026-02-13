@@ -252,6 +252,40 @@ const ExtractionFields = () => {
                         </button>
                     </div>
                 )}
+
+                {googleConnected && (
+                    <div className="sync-actions" style={{ marginTop: '15px' }}>
+                        <button
+                            className="btn-secondary"
+                            onClick={async () => {
+                                if (!window.confirm('This will overwrite the first row of your sheet with headers. Continue?')) return;
+                                try {
+                                    setLoading(true);
+                                    await extractionFieldsAPI.syncHeaders();
+                                    alert('✅ Headers synced successfully!');
+                                } catch (err) {
+                                    console.error('Error syncing headers:', err);
+                                    alert('Failed to sync headers');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            disabled={loading}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#f0f0f0',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <span>🔄</span> Sync Headers to Sheet
+                        </button>
+                    </div>
+                )}
             </div>
 
             {fields.length === 0 ? (

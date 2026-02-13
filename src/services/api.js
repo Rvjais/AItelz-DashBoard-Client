@@ -139,6 +139,10 @@ export const extractionFieldsAPI = {
         const response = await api.put('/extraction-fields/bulk/update-order', { fields });
         return response.data;
     },
+    syncHeaders: async () => {
+        const response = await api.post('/extraction-fields/sync/headers');
+        return response.data;
+    }
 };
 
 // Google Sheets API
