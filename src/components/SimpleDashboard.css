@@ -305,8 +305,9 @@
 }
 
 .refresh-btn:hover {
-    background: var(--accent-gray);
+    background: var(--accent-primary);
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .refresh-btn:disabled {
@@ -356,15 +357,15 @@
 }
 
 .stat-icon.phone {
-    background: var(--accent-dark);
+    background: var(--gradient-primary);
 }
 
 .stat-icon.cost {
-    background: var(--accent-gray);
+    background: linear-gradient(135deg, #ff8c42 0%, #ffb088 100%);
 }
 
 .stat-icon.agents {
-    background: var(--accent-dark);
+    background: var(--gradient-primary);
 }
 
 .stat-content {
@@ -435,8 +436,9 @@
 }
 
 .add-agent-btn:hover {
-    background: var(--accent-gray);
+    background: var(--accent-primary);
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .section-actions {
@@ -534,7 +536,7 @@
 .agent-icon {
     width: 48px;
     height: 48px;
-    background: var(--accent-dark);
+    background: var(--gradient-primary);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;

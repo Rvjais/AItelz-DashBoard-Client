@@ -113,4 +113,55 @@ export const executionsAPI = {
     },
 };
 
+// Extraction Fields API
+export const extractionFieldsAPI = {
+    getAll: async () => {
+        const response = await api.get('/extraction-fields');
+        return response.data;
+    },
+
+    create: async (fieldData) => {
+        const response = await api.post('/extraction-fields', fieldData);
+        return response.data;
+    },
+
+    update: async (fieldId, fieldData) => {
+        const response = await api.put(`/extraction-fields/${fieldId}`, fieldData);
+        return response.data;
+    },
+
+    delete: async (fieldId) => {
+        const response = await api.delete(`/extraction-fields/${fieldId}`);
+        return response.data;
+    },
+
+    bulkUpdateOrder: async (fields) => {
+        const response = await api.put('/extraction-fields/bulk/update-order', { fields });
+        return response.data;
+    },
+};
+
+// Google Sheets API
+export const googleSheetsAPI = {
+    getAuthUrl: async () => {
+        const response = await api.get('/auth/google');
+        return response.data;
+    },
+
+    saveSheetId: async (sheetId) => {
+        const response = await api.post('/auth/google/sheet-id', { sheetId });
+        return response.data;
+    },
+
+    disconnect: async () => {
+        const response = await api.delete('/auth/google/disconnect');
+        return response.data;
+    },
+
+    getStatus: async () => {
+        const response = await api.get('/auth/google/status');
+        return response.data;
+    },
+};
+
 export default api;

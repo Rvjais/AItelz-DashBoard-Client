@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
 import { agentsAPI, executionsAPI } from '../services/api';
 import AddAgentModal from './AddAgentModal';
+import ExtractionFields from './ExtractionFields';
 import './SimpleDashboard.css';
 import './TranscriptsExpenses.css';
 
@@ -173,6 +174,14 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                     >
                         <DollarSign size={20} />
                         <span>Expenses</span>
+                    </div>
+
+                    <div
+                        className={`nav-item ${activePage === 'extraction' ? 'active' : ''}`}
+                        onClick={() => changePage('extraction')}
+                    >
+                        <Bot size={20} />
+                        <span>AI Data Extraction</span>
                     </div>
 
                     {onPaymentClick && (
@@ -610,6 +619,11 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                                     </table>
                                 </div>
                             </div>
+                        )}
+
+                        {/* AI Data Extraction Page */}
+                        {activePage === 'extraction' && (
+                            <ExtractionFields />
                         )}
                     </>
                 )}

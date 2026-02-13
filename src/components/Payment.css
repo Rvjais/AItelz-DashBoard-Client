@@ -171,9 +171,10 @@
 .plan-card-green .plan-button:hover,
 .plan-card-orange .plan-button:hover,
 .plan-card-pink .plan-button:hover {
-    background: var(--accent-gray);
-    border-color: var(--accent-gray);
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: white;
+    transform: translateY(-2px);
 }
 
 .arrow-right {
