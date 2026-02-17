@@ -111,6 +111,11 @@ export const executionsAPI = {
         const response = await api.post('/executions/sync');
         return response.data;
     },
+
+    syncHistory: async () => {
+        const response = await api.post('/executions/sync-history');
+        return response.data;
+    },
 };
 
 // Extraction Fields API

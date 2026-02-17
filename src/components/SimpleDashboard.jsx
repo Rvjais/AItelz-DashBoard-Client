@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
+import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot, Cloud, Check } from 'lucide-react';
 import { agentsAPI, executionsAPI } from '../services/api';
 import AddAgentModal from './AddAgentModal';
 import ExtractionFields from './ExtractionFields';
@@ -57,6 +57,22 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
         } catch (error) {
             console.error('Sync error:', error);
             alert('❌ Sync failed: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleSyncHistory = async () => {
+        try {
+            setSyncing(true);
+            const result = await executionsAPI.syncHistory();
+            console.log('Sync history result:', result);
+            alert(`✅ History Sync complete! Synced ${result.count} past executions to Google Sheet.`);
+            // Refresh data after sync
+            await onRefresh();
+        } catch (error) {
+            console.error('History sync error:', error);
+            alert('❌ History sync failed: ' + (error.response?.data?.error || error.message));
         } finally {
             setSyncing(false);
         }
@@ -373,6 +389,28 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                                         Call History & Transcripts
                                     </h2>
                                     <div className="filter-group">
+                                        <button
+                                            className="sync-history-btn"
+                                            onClick={handleSyncHistory}
+                                            disabled={syncing}
+                                            title="Sync all past calls to Google Sheet"
+                                            style={{
+                                                marginRight: '1rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                padding: '0.5rem 1rem',
+                                                background: 'var(--primary-color)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.5rem',
+                                                cursor: 'pointer',
+                                                fontSize: '0.875rem'
+                                            }}
+                                        >
+                                            <Cloud size={16} className={syncing ? 'spinning' : ''} />
+                                            {syncing ? 'Syncing...' : 'Sync History'}
+                                        </button>
                                         <label htmlFor="agent-filter">Filter by Agent:</label>
                                         <select
                                             id="agent-filter"
@@ -412,6 +450,11 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                                                             <span>👤 {execution.agent_id?.name || 'Unknown'}</span>
                                                             <span>⏱️ {Math.floor(execution.conversation_time / 60)}m {execution.conversation_time % 60}s</span>
                                                             <span>💰 {formatCurrency(execution.total_cost || 0)}</span>
+                                                            {execution.extracted_data?.google_sheet_synced && (
+                                                                <span title="Synced to Google Sheet" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: '500' }}>
+                                                                    <Check size={14} /> Synced
+                                                                </span>
+                                                            )}
                                                         </p>
                                                         <p className="execution-date">
                                                             📅 {new Date(execution.started_at).toLocaleString()}
