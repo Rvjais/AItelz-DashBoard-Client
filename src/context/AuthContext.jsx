@@ -1,3 +1,4 @@
+// @refresh reset
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 
@@ -20,8 +21,14 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         const savedUser = localStorage.getItem('user');
 
-        if (token && savedUser) {
-            setUser(JSON.parse(savedUser));
+        if (token && savedUser && savedUser !== 'undefined') {
+            try {
+                setUser(JSON.parse(savedUser));
+            } catch (error) {
+                console.error('Failed to parse saved user:', error);
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+            }
         }
         setLoading(false);
     }, []);
@@ -29,11 +36,21 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             const data = await authAPI.login(email, password);
-            setUser(data.client);
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.client));
-            return { success: true };
+            console.log('Login response:', data);
+            
+            // User data is in data.data (nested structure from API)
+            const userData = data.data || data.client || data.user;
+            
+            if (userData && (userData.id || userData._id)) {
+                console.log('Setting user:', userData);
+                setUser(userData);
+                return { success: true };
+            } else {
+                console.error('No valid user data in response:', data);
+                return { success: false, error: 'Invalid response from server' };
+            }
         } catch (error) {
+            console.error('Login error:', error);
             return {
                 success: false,
                 error: error.response?.data?.error || 'Login failed'

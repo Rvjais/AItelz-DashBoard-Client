@@ -21,8 +21,11 @@ const Login = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
         if (!result.success) {
             setError(result.error);
             setLoading(false);
+        } else {
+            // Login successful - user state will be updated by AuthContext
+            // App component will detect isAuthenticated change and redirect
+            setLoading(false);
         }
-        // If successful, AuthContext will update and App will re-render
     };
 
     return (

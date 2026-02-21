@@ -44,9 +44,17 @@ export const authAPI = {
 
     login: async (email, password) => {
         const response = await api.post('/auth/login', { email, password });
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.client));
+        console.log('API login response:', response.data);
+        if (response.data.token || response.data.success) {
+            const token = response.data.token || localStorage.getItem('token');
+            if (token) {
+                localStorage.setItem('token', token);
+            }
+            // User data is in response.data.data
+            const userData = response.data.data || response.data.client || response.data.user;
+            if (userData) {
+                localStorage.setItem('user', JSON.stringify(userData));
+            }
         }
         return response.data;
     },
