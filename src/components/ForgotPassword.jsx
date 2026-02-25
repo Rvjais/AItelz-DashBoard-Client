@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import './Login.css';
 
+// Central API base — reads from .env (VITE_API_URL) with local fallback
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const ForgotPassword = ({ onBackToLogin }) => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
@@ -13,7 +16,7 @@ const ForgotPassword = ({ onBackToLogin }) => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/forgot-password`, {
+            const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

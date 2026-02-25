@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
+// Central API base — reads from .env (VITE_API_URL) with local fallback
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const ResetPassword = ({ token, onBackToLogin }) => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,7 +33,7 @@ const ResetPassword = ({ token, onBackToLogin }) => {
 
         try {
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/reset-password/${token}`,
+                `${API_BASE}/api/auth/reset-password/${token}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
