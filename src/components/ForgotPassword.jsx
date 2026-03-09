@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './Login.css';
 
 // Central API base — reads from .env (VITE_API_URL) with local fallback
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.aitelz.com';
 
 const ForgotPassword = ({ onBackToLogin }) => {
     const [email, setEmail] = useState('');

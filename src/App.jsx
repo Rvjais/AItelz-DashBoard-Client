@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
-import { agentsAPI, executionsAPI } from './services/api';
+import { agentsAPI, executionsAPI, campaignsAPI, extractionFieldsAPI } from './services/api';
 import Login from './components/Login';
 import Register from './components/Register';
 import ForgotPassword from './components/ForgotPassword';
@@ -16,6 +16,8 @@ function App() {
   const [resetToken, setResetToken] = useState(null);
   const [agents, setAgents] = useState([]);
   const [executions, setExecutions] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [extractionFields, setExtractionFields] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +50,22 @@ function App() {
       // Fetch executions
       const executionsData = await executionsAPI.getAll();
       setExecutions(executionsData.executions || []);
+
+      // Fetch campaigns
+      try {
+        const campaignsData = await campaignsAPI.getAll();
+        setCampaigns(campaignsData.campaigns || []);
+      } catch (err) {
+        console.error('Error fetching campaigns:', err);
+      }
+
+      // Fetch extraction fields
+      try {
+        const extractionData = await extractionFieldsAPI.getAll();
+        setExtractionFields(extractionData.fields || []);
+      } catch (err) {
+        console.error('Error fetching extraction fields:', err);
+      }
 
       // Fetch stats
       const statsData = await executionsAPI.getStats();
@@ -117,6 +135,8 @@ function App() {
     <SimpleDashboard
       agents={agents}
       executions={executions}
+      campaigns={campaigns}
+      extractionFields={extractionFields}
       stats={stats}
       loading={loading}
       onRefresh={fetchData}

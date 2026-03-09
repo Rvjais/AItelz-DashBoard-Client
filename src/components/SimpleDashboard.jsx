@@ -1,22 +1,85 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot, Cloud, Check } from 'lucide-react';
+import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot, Cloud, Check, PhoneCall, Sparkles } from 'lucide-react';
 import { agentsAPI, executionsAPI } from '../services/api';
 import AddAgentModal from './AddAgentModal';
+import EditPromptModal from './EditPromptModal';
 import ExtractionFields from './ExtractionFields';
+import OutboundCampaigns from './OutboundCampaigns';
 import './SimpleDashboard.css';
 import './TranscriptsExpenses.css';
+import aitelzLogo from '../assets/logo.png';
 
-const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaymentClick }) => {
+const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stats, loading, onRefresh, onPaymentClick }) => {
     const { logout, user } = useAuth();
     const [selectedExecution, setSelectedExecution] = useState(null);
+
+    // Helper to get clean extracted data for display
+    const getCleanExtractedData = (exec) => {
+        if (!exec.extracted_data) return [];
+
+        // If Custom Fields extracted, prefer those
+        const data = exec.extracted_data.custom_fields || exec.extracted_data;
+
+        return Object.entries(data).filter(([key, value]) => {
+            // Filter out internal metadata/private fields
+            return !key.startsWith('_') &&
+                !['metadata', 'google_sheet_synced', 'extraction_fields_count'].includes(key) &&
+                value !== 'Not Found' &&
+                value !== null &&
+                value !== undefined;
+        });
+    };
+
+    // Helper to get the actual customer number (not the bot number)
+    const getCustomerNumber = (exec) => {
+        const metadata = exec.metadata || {};
+        const telephony = metadata.telephony_data || {};
+
+        // Potential customer number fields
+        const recipient = metadata.recipient_phone_number || metadata.recipient;
+        const from = exec.from_number || telephony.from || telephony.from_number;
+        const to = exec.to_number || telephony.to || telephony.to_number;
+
+        // Known bot number (from screenshot/user)
+        const botNumber = '+918035315291';
+
+        // If we have a specific recipient from metadata, it's likely the customer
+        if (recipient && recipient !== botNumber) return recipient;
+
+        // Determine direction
+        const direction = telephony.direction || metadata.direction || 'outbound';
+
+        if (direction === 'inbound') {
+            // For inbound, 'from' is the customer
+            return (from && from !== botNumber) ? from : (to !== botNumber ? to : 'Unknown');
+        }
+
+        // For outbound, 'to' is the customer
+        return (to && to !== botNumber) ? to : (from !== botNumber ? from : 'Customer');
+    };
+
     const [activePage, setActivePage] = useState('overview'); // Changed from activeSection
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // New state for desktop collapse
     const [showAddAgentModal, setShowAddAgentModal] = useState(false);
+    const [showEditPromptModal, setShowEditPromptModal] = useState(false);
+    const [selectedAgentForPrompt, setSelectedAgentForPrompt] = useState(null);
+    const [pageNumber, setPageNumber] = useState(1);
+    const [highlightCampaignId, setHighlightCampaignId] = useState(null);
     const [syncing, setSyncing] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState('all'); // Filter by agent
     const [currency, setCurrency] = useState('USD'); // USD or INR
+
+    // Auto-navigate to outbound page if returning from Google Auth
+    React.useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('google_auth') === 'success') {
+            setActivePage('outbound');
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, []);
 
     // Currency conversion rate (1 USD = 83 INR approximately)
     const USD_TO_INR = 83;
@@ -147,7 +210,7 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                 </button>
 
                 <div className="sidebar-header">
-                    <h2>AItelz</h2>
+                    <img src={aitelzLogo} alt="AItelz Logo" className="sidebar-logo" />
                     <p className="user-name">👤 {user?.name}</p>
                 </div>
 
@@ -198,6 +261,14 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                     >
                         <Bot size={20} />
                         <span>AI Data Extraction</span>
+                    </div>
+
+                    <div
+                        className={`nav-item ${activePage === 'outbound' ? 'active' : ''}`}
+                        onClick={() => changePage('outbound')}
+                    >
+                        <PhoneCall size={20} />
+                        <span>Outbound Campaigns</span>
                     </div>
 
                     {onPaymentClick && (
@@ -315,6 +386,84 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="overview-lists-grid">
+                                    {/* Active Campaigns Section */}
+                                    <div className="overview-section">
+                                        <div className="section-header-compact">
+                                            <h3><PhoneCall size={18} /> Active Campaigns</h3>
+                                            <button className="view-all-link" onClick={() => changePage('outbound')}>View All</button>
+                                        </div>
+                                        <div className="overview-list">
+                                            {campaigns.filter(c => c.status === 'active').length === 0 ? (
+                                                <div className="empty-list-indicator">No active campaigns</div>
+                                            ) : (
+                                                campaigns.filter(c => c.status === 'active').slice(0, 3).map(campaign => (
+                                                    <div
+                                                        key={campaign._id}
+                                                        className="overview-item clickable"
+                                                        onClick={() => {
+                                                            setHighlightCampaignId(campaign._id);
+                                                            changePage('outbound');
+                                                        }}
+                                                    >
+                                                        <div className="item-info">
+                                                            <p className="item-title">{campaign.name}</p>
+                                                            <p className="item-subtitle">{campaign.agent_id?.name}</p>
+                                                        </div>
+                                                        <div className="item-stats-compact">
+                                                            <div className="mini-stat">
+                                                                <span className="mini-label">Rem.</span>
+                                                                <span className="mini-value">{campaign.pending_records || 0}</span>
+                                                            </div>
+                                                            <div className={`progress-dot ${campaign.pending_records > 0 ? 'active' : ''}`}></div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Recent AI Extractions Section */}
+                                    <div className="overview-section">
+                                        <div className="section-header-compact">
+                                            <h3><Bot size={18} /> Recent AI Extractions</h3>
+                                            <button className="view-all-link" onClick={() => changePage('extraction')}>Configure</button>
+                                        </div>
+                                        <div className="overview-list">
+                                            {executions.filter(e => getCleanExtractedData(e).length > 0).length === 0 ? (
+                                                <div className="empty-list-indicator">No data extracted yet</div>
+                                            ) : (
+                                                executions.filter(e => getCleanExtractedData(e).length > 0).slice(0, 5).map(exec => (
+                                                    <div
+                                                        key={exec._id}
+                                                        className="overview-item extraction-item clickable"
+                                                        onClick={() => {
+                                                            setSelectedExecution(exec);
+                                                            changePage('calls');
+                                                        }}
+                                                    >
+                                                        <div className="item-info">
+                                                            <div className="item-title-row">
+                                                                <span className="info-label">Contact:</span>
+                                                                <p className="item-title">{getCustomerNumber(exec)}</p>
+                                                            </div>
+                                                            <p className="item-subtitle">{new Date(exec.started_at).toLocaleTimeString()}</p>
+                                                        </div>
+                                                        <div className="extraction-details">
+                                                            {getCleanExtractedData(exec).map(([key, value]) => (
+                                                                <div key={key} className="extraction-tag">
+                                                                    <span className="extraction-key">{key}:</span>
+                                                                    <span className="extraction-value" title={String(value)}>{String(value)}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -364,6 +513,17 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                                                     {agent.description && <p className="agent-desc">{agent.description}</p>}
                                                 </div>
                                                 <div className="agent-actions">
+                                                    <button
+                                                        className="edit-prompt-btn"
+                                                        onClick={() => {
+                                                            setSelectedAgentForPrompt(agent);
+                                                            setShowEditPromptModal(true);
+                                                        }}
+                                                        title="Edit System Prompt"
+                                                    >
+                                                        <Sparkles size={16} />
+                                                        <span>Edit Prompt</span>
+                                                    </button>
                                                     <span className="badge">Active</span>
                                                     <button
                                                         className="delete-agent-btn"
@@ -666,7 +826,16 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
 
                         {/* AI Data Extraction Page */}
                         {activePage === 'extraction' && (
-                            <ExtractionFields />
+                            <ExtractionFields onRefresh={onRefresh} />
+                        )}
+
+                        {/* Outbound Campaigns Page */}
+                        {activePage === 'outbound' && (
+                            <OutboundCampaigns
+                                agents={agents}
+                                onRefresh={onRefresh}
+                                highlightId={highlightCampaignId}
+                            />
                         )}
                     </>
                 )}
@@ -678,6 +847,17 @@ const SimpleDashboard = ({ agents, executions, stats, loading, onRefresh, onPaym
                     <AddAgentModal
                         onClose={() => setShowAddAgentModal(false)}
                         onAgentAdded={handleAgentAdded}
+                    />
+                )
+            }
+            {
+                showEditPromptModal && selectedAgentForPrompt && (
+                    <EditPromptModal
+                        agent={selectedAgentForPrompt}
+                        onClose={() => {
+                            setShowEditPromptModal(false);
+                            setSelectedAgentForPrompt(null);
+                        }}
                     />
                 )
             }

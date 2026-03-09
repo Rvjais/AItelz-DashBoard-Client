@@ -3,7 +3,7 @@ import { extractionFieldsAPI, googleSheetsAPI } from '../services/api';
 import FieldFormModal from './FieldFormModal';
 import './ExtractionFields.css';
 
-const ExtractionFields = () => {
+const ExtractionFields = ({ onRefresh }) => {
     const [fields, setFields] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -53,6 +53,7 @@ const ExtractionFields = () => {
         try {
             await extractionFieldsAPI.delete(fieldId);
             await fetchFields();
+            if (onRefresh) onRefresh();
         } catch (err) {
             console.error('Error deleting field:', err);
             alert('Failed to delete field');
@@ -65,6 +66,7 @@ const ExtractionFields = () => {
                 is_active: !field.is_active
             });
             await fetchFields();
+            if (onRefresh) onRefresh();
         } catch (err) {
             console.error('Error toggling field:', err);
             alert('Failed to update field status');
@@ -80,6 +82,7 @@ const ExtractionFields = () => {
             }
             setShowModal(false);
             await fetchFields();
+            if (onRefresh) onRefresh();
         } catch (err) {
             console.error('Error saving field:', err);
             throw err;
@@ -90,9 +93,10 @@ const ExtractionFields = () => {
     const fetchGoogleStatus = async () => {
         try {
             const status = await googleSheetsAPI.getStatus();
-            setGoogleConnected(status.connected || false);
+            setGoogleConnected(status.connected || false); // This now means 'is a sheet ID set?'
             setSheetId(status.sheetId || '');
             setSheetUrl(status.sheetUrl);
+            // We can also store status.is_authorized if needed for more granular UI
         } catch (err) {
             console.error('Error fetching Google status:', err);
         }
@@ -141,7 +145,7 @@ const ExtractionFields = () => {
             setGoogleConnected(false);
             setSheetId('');
             setSheetUrl(null);
-            alert('Google Sheets disconnected');
+            alert('Google Sheet disconnected (Google account remains connected)');
         } catch (err) {
             console.error('Error disconnecting:', err);
             alert('Failed to disconnect');

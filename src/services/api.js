@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.aitelz.com';
 // Remove /api if it's already in the URL, then add it back
 const cleanURL = API_BASE_URL.replace(/\/api\/?$/, '');
 const API_URL = `${cleanURL}/api`;
@@ -96,6 +96,16 @@ export const agentsAPI = {
         const response = await api.delete(`/agents/${agentId}`);
         return response.data;
     },
+
+    getBolnaDetails: async (agentId) => {
+        const response = await api.get(`/agents/${agentId}/bolna-details`);
+        return response.data;
+    },
+
+    updatePrompt: async (agentId, systemPrompt) => {
+        const response = await api.put(`/agents/${agentId}/prompt`, { systemPrompt });
+        return response.data;
+    },
 };
 
 // Executions API
@@ -177,6 +187,34 @@ export const googleSheetsAPI = {
 
     getStatus: async () => {
         const response = await api.get('/auth/google/status');
+        return response.data;
+    },
+};
+
+// Campaigns API
+export const campaignsAPI = {
+    getAll: async () => {
+        const response = await api.get('/campaigns');
+        return response.data;
+    },
+
+    getById: async (campaignId) => {
+        const response = await api.get(`/campaigns/${campaignId}`);
+        return response.data;
+    },
+
+    create: async (campaignData) => {
+        const response = await api.post('/campaigns', campaignData);
+        return response.data;
+    },
+
+    updateStatus: async (campaignId, status) => {
+        const response = await api.put(`/campaigns/${campaignId}/status`, { status });
+        return response.data;
+    },
+
+    delete: async (campaignId) => {
+        const response = await api.delete(`/campaigns/${campaignId}`);
         return response.data;
     },
 };
