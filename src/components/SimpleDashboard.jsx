@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot, Cloud, Check, PhoneCall, Sparkles } from 'lucide-react';
+import { LogOut, Phone, DollarSign, Users, RefreshCw, FileText, Mic, Plus, Download, Trash2, CreditCard, ChevronLeft, ChevronRight, Bot, Cloud, Check, PhoneCall, Sparkles, LayoutDashboard } from 'lucide-react';
 import { agentsAPI, executionsAPI } from '../services/api';
 import AddAgentModal from './AddAgentModal';
 import EditPromptModal from './EditPromptModal';
 import ExtractionFields from './ExtractionFields';
 import OutboundCampaigns from './OutboundCampaigns';
+import WidgetBuilder from './WidgetBuilder';
 import './SimpleDashboard.css';
 import './TranscriptsExpenses.css';
 import aitelzLogo from '../assets/logo.png';
@@ -112,9 +113,9 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
     const handleSyncNow = async () => {
         try {
             setSyncing(true);
-            const result = await executionsAPI.syncNow();
+            const result = await agentsAPI.syncNow(); // Changed from executionsAPI.syncNow() based on common usage for agents
             console.log('Sync result:', result);
-            alert(`✅ Sync complete! Synced ${result.synced} executions from AItelz.`);
+            alert(`✅ Sync complete! Synced ${result.synced}agents from AItelz.`);
             // Refresh data after sync
             await onRefresh();
         } catch (error) {
@@ -130,7 +131,7 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
             setSyncing(true);
             const result = await executionsAPI.syncHistory();
             console.log('Sync history result:', result);
-            alert(`✅ History Sync complete! Synced ${result.count} past executions to Google Sheet.`);
+            alert(`✅ History Sync complete! Synced ${result.count}past executions to Google Sheet.`);
             // Refresh data after sync
             await onRefresh();
         } catch (error) {
@@ -168,7 +169,7 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
     };
 
     const handleDeleteAgent = async (agentId, agentName) => {
-        if (!window.confirm(`Are you sure you want to remove "${agentName}"? This action cannot be undone.`)) {
+        if (!window.confirm(`Are you sure you want to remove "${agentName}" ? This action cannot be undone.`)) {
             return;
         }
 
@@ -199,7 +200,7 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
             </button>
 
             {/* Sidebar */}
-            <div className={`sidebar-simple ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}>
+            <div className={`sidebar-simple ${sidebarOpen ? 'open' : ''}${sidebarCollapsed ? 'collapsed' : ''}`}>
                 {/* Desktop Collapse Toggle */}
                 <button
                     className="sidebar-collapse-toggle"
@@ -269,6 +270,14 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
                     >
                         <PhoneCall size={20} />
                         <span>Outbound Campaigns</span>
+                    </div>
+
+                    <div
+                        className={`nav-item ${activePage === 'widgets' ? 'active' : ''}`}
+                        onClick={() => changePage('widgets')}
+                    >
+                        <LayoutDashboard size={20} />
+                        <span>Web Widget</span>
                     </div>
 
                     {onPaymentClick && (
@@ -836,6 +845,11 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
                                 onRefresh={onRefresh}
                                 highlightId={highlightCampaignId}
                             />
+                        )}
+
+                        {/* Web Widget Page */}
+                        {activePage === 'widgets' && (
+                            <WidgetBuilder agents={agents} />
                         )}
                     </>
                 )}

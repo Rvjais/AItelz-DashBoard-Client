@@ -71,6 +71,13 @@ export const authAPI = {
 };
 
 // Agents API
+export const widgetsAPI = {
+    getAll: () => api.get('/widgets').then(res => res.data),
+    create: (data) => api.post('/widgets', data).then(res => res.data),
+    update: (id, data) => api.put(`/widgets/${id}`, data).then(res => res.data),
+    delete: (id) => api.delete(`/widgets/${id}`).then(res => res.data),
+};
+
 export const agentsAPI = {
     getAll: async () => {
         const response = await api.get('/agents');
