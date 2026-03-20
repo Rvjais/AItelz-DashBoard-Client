@@ -629,6 +629,16 @@
     border: 1px solid var(--border-color);
 }
 
+.badge.widget-source-badge {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 /* Executions List */
 .executions-list {
     display: flex;

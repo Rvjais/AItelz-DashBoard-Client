@@ -113,9 +113,9 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
     const handleSyncNow = async () => {
         try {
             setSyncing(true);
-            const result = await agentsAPI.syncNow(); // Changed from executionsAPI.syncNow() based on common usage for agents
+            const result = await executionsAPI.syncNow();
             console.log('Sync result:', result);
-            alert(`✅ Sync complete! Synced ${result.synced}agents from AItelz.`);
+            alert(`✅ Sync complete! Synced ${result.synced} executions from AItelz.`);
             // Refresh data after sync
             await onRefresh();
         } catch (error) {
@@ -624,6 +624,11 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
                                                                     <Check size={14} /> Synced
                                                                 </span>
                                                             )}
+                                                            {execution.source === 'widget' && (
+                                                                <span className="badge widget-source-badge" title="This call was initiated through the Web Widget">
+                                                                    🌐 Widget Call
+                                                                </span>
+                                                            )}
                                                         </p>
                                                         <p className="execution-date">
                                                             📅 {new Date(execution.started_at).toLocaleString()}
@@ -737,6 +742,11 @@ const SimpleDashboard = ({ agents, executions, campaigns, extractionFields, stat
                                                             <span>👤 {execution.agent_id?.name}</span>
                                                             <span>📅 {new Date(execution.started_at).toLocaleString()}</span>
                                                             <span>⏱️ {Math.floor(execution.conversation_time / 60)}m {execution.conversation_time % 60}s</span>
+                                                            {execution.source === 'widget' && (
+                                                                <span className="badge widget-source-badge" title="This call was initiated through the Web Widget">
+                                                                    🌐 Widget Call
+                                                                </span>
+                                                            )}
                                                         </p>
                                                     </div>
                                                     <span className={`status-badge ${execution.status}`}>

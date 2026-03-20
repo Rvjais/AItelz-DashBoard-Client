@@ -175,6 +175,24 @@ export const extractionFieldsAPI = {
     }
 };
 
+// OpenAI API Key Management
+export const apiKeyAPI = {
+    getStatus: async () => {
+        const response = await api.get('/auth/api-key/status');
+        return response.data;
+    },
+
+    save: async (apiKey) => {
+        const response = await api.post('/auth/api-key', { apiKey });
+        return response.data;
+    },
+
+    delete: async () => {
+        const response = await api.delete('/auth/api-key');
+        return response.data;
+    },
+};
+
 // Google Sheets API
 export const googleSheetsAPI = {
     getAuthUrl: async () => {

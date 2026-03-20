@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Code, Trash2, Smartphone, Save, Copy, CheckCircle2 } from 'lucide-react';
+import { Settings, Code, Trash2, Smartphone, Save, Copy, CheckCircle2, Plus } from 'lucide-react';
 import { widgetsAPI } from '../services/api';
 import './WidgetBuilder.css';
 
@@ -13,22 +13,34 @@ const WidgetBuilder = ({ agents }) => {
         fetchWidgets();
     }, []);
 
-    const fetchWidgets = async () => {
+    const normalizeWidget = (w) => ({
+        ...w,
+        agent_id: w.agent_id?._id || w.agent_id || ''
+    });
+
+    const fetchWidgets = async (preserveActiveId = null) => {
         try {
-            setLoading(true);
+            // Only show full loading spinner on first load
+            if (!preserveActiveId) setLoading(true);
             const response = await widgetsAPI.getAll();
             const fetchedWidgets = response.widgets || [];
             setWidgets(fetchedWidgets);
 
-            // If they have a widget, select the first one.
             if (fetchedWidgets.length > 0) {
-                setActiveWidget(fetchedWidgets[0]);
+                if (preserveActiveId) {
+                    // After a save: re-select the widget that was just saved
+                    const match = fetchedWidgets.find(w => w._id === preserveActiveId);
+                    setActiveWidget(normalizeWidget(match || fetchedWidgets[0]));
+                } else {
+                    // Initial load: auto-select first
+                    setActiveWidget(normalizeWidget(fetchedWidgets[0]));
+                }
             } else {
                 handleCreateNew();
             }
         } catch (error) {
             console.error('Failed to fetch widgets', error);
-            handleCreateNew(); // Fallback to new widget if fetch fails
+            handleCreateNew();
         } finally {
             setLoading(false);
         }
@@ -61,20 +73,23 @@ const WidgetBuilder = ({ agents }) => {
 
             const payload = {
                 ...activeWidget,
-                // Clean up domains array
                 allowed_domains: (typeof activeWidget.allowed_domains === 'string'
                     ? activeWidget.allowed_domains.split(',').map(d => d.trim()).filter(Boolean)
                     : activeWidget.allowed_domains)
             };
 
+            let savedId;
             if (activeWidget._id === 'new') {
                 delete payload._id;
-                await widgetsAPI.create(payload);
+                const result = await widgetsAPI.create(payload);
+                savedId = result.widget?._id;
             } else {
                 await widgetsAPI.update(activeWidget._id, payload);
+                savedId = activeWidget._id;
             }
             alert('Widget saved successfully!');
-            fetchWidgets(); // Refresh list to get real ID if it was new
+            // Pass the saved widget's ID so fetchWidgets re-selects it correctly
+            await fetchWidgets(savedId);
         } catch (error) {
             console.error('Failed to save widget', error);
             alert('Failed to save widget.');
@@ -128,14 +143,53 @@ const WidgetBuilder = ({ agents }) => {
     if (!activeWidget) return null;
 
     return (
-        <div className="widget-builder-container">
-            {/* LEFT PANEL : Editor settings */}
-            <div className="widget-editor">
+        <div className="widget-builder-container layout-with-sidebar">
+            {/* WIDGET LIST SIDEBAR */}
+            <div className="widget-list-sidebar">
+                <div className="sidebar-header">
+                    <h3>Your Widgets</h3>
+                    <button className="add-new-btn" onClick={handleCreateNew} title="Create New Widget">
+                        <Plus size={16} /> New
+                    </button>
+                </div>
+                <div className="widget-list">
+                    {widgets.length === 0 && activeWidget?._id === 'new' ? (
+                        <div className="widget-list-item active">
+                            <span className="widget-name">New Widget</span>
+                            <span className="badge new-badge">Unsaved</span>
+                        </div>
+                    ) : (
+                        widgets.map(widget => (
+                            <div
+                                key={widget._id}
+                                className={`widget-list-item ${activeWidget?._id === widget._id ? 'active' : ''}`}
+                                onClick={() => setActiveWidget(normalizeWidget(widget))}
+                            >
+                                <span className="widget-name">{widget.name || 'Unnamed Widget'}</span>
+                                {widget.is_active ? (
+                                    <span className="status-dot active" title="Active"></span>
+                                ) : (
+                                    <span className="status-dot inactive" title="Inactive"></span>
+                                )}
+                            </div>
+                        ))
+                    )}
+                    {activeWidget?._id === 'new' && widgets.length > 0 && (
+                        <div className="widget-list-item active">
+                            <span className="widget-name">New Widget</span>
+                            <span className="badge new-badge">Unsaved</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* EDITOR MAIN AREA */}
+            <div className="widget-editor main-editor-area">
                 <div className="editor-header">
-                    <h2><Settings size={20} /> Widget Builder</h2>
-                    {widgets.length > 0 && activeWidget._id !== 'new' && (
+                    <h2><Settings size={20} /> Widget Settings</h2>
+                    {activeWidget._id !== 'new' && (
                         <button className="delete-btn outline" onClick={() => handleDelete(activeWidget._id)} title="Delete Widget">
-                            <Trash2 size={16} />
+                            <Trash2 size={16} /> Delete
                         </button>
                     )}
                 </div>
@@ -145,7 +199,7 @@ const WidgetBuilder = ({ agents }) => {
                         <label>Internal Name</label>
                         <input
                             type="text"
-                            value={activeWidget.name}
+                            value={activeWidget.name || ''}
                             onChange={(e) => handleChange('name', e.target.value)}
                             placeholder="e.g. Homepage Lead Gen"
                         />
@@ -154,7 +208,7 @@ const WidgetBuilder = ({ agents }) => {
                     <div className="form-group">
                         <label>AI Agent to Handle Calls</label>
                         <select
-                            value={activeWidget.agent_id}
+                            value={activeWidget.agent_id?._id || activeWidget.agent_id || ''}
                             onChange={(e) => handleChange('agent_id', e.target.value)}
                         >
                             <option value="">-- Select an Agent --</option>
@@ -241,7 +295,7 @@ const WidgetBuilder = ({ agents }) => {
                         <label>Floating Button Text</label>
                         <input
                             type="text"
-                            value={activeWidget.button_text}
+                            value={activeWidget.button_text || ''}
                             onChange={(e) => handleChange('button_text', e.target.value)}
                             maxLength={30}
                         />
@@ -251,7 +305,7 @@ const WidgetBuilder = ({ agents }) => {
                         <label>Popup Title</label>
                         <input
                             type="text"
-                            value={activeWidget.modal_title}
+                            value={activeWidget.modal_title || ''}
                             onChange={(e) => handleChange('modal_title', e.target.value)}
                             maxLength={50}
                         />
@@ -260,7 +314,7 @@ const WidgetBuilder = ({ agents }) => {
                     <div className="form-group">
                         <label>Popup Subtitle</label>
                         <textarea
-                            value={activeWidget.modal_subtitle}
+                            value={activeWidget.modal_subtitle || ''}
                             onChange={(e) => handleChange('modal_subtitle', e.target.value)}
                             rows={2}
                             maxLength={100}
@@ -282,7 +336,7 @@ const WidgetBuilder = ({ agents }) => {
                         <p className="help-text">Comma-separated list of domains allowed to request calls. (e.g. example.com, mysite.org). Leave blank to allow all during testing.</p>
                         <input
                             type="text"
-                            value={Array.isArray(activeWidget.allowed_domains) ? activeWidget.allowed_domains.join(', ') : activeWidget.allowed_domains}
+                            value={Array.isArray(activeWidget.allowed_domains) ? activeWidget.allowed_domains.join(', ') : (activeWidget.allowed_domains || '')}
                             onChange={(e) => handleChange('allowed_domains', e.target.value)}
                             placeholder="example.com, mywebsite.com"
                         />

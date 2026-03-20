@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { extractionFieldsAPI, googleSheetsAPI } from '../services/api';
+import { extractionFieldsAPI, googleSheetsAPI, apiKeyAPI } from '../services/api';
 import FieldFormModal from './FieldFormModal';
 import './ExtractionFields.css';
 
@@ -16,9 +16,17 @@ const ExtractionFields = ({ onRefresh }) => {
     const [sheetUrl, setSheetUrl] = useState(null);
     const [connectingGoogle, setConnectingGoogle] = useState(false);
 
+    // API Key state
+    const [hasApiKey, setHasApiKey] = useState(false);
+    const [maskedKey, setMaskedKey] = useState(null);
+    const [apiKeyInput, setApiKeyInput] = useState('');
+    const [savingApiKey, setSavingApiKey] = useState(false);
+    const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
     useEffect(() => {
         fetchFields();
         fetchGoogleStatus();
+        fetchApiKeyStatus();
     }, []);
 
     const fetchFields = async () => {
@@ -99,6 +107,54 @@ const ExtractionFields = ({ onRefresh }) => {
             // We can also store status.is_authorized if needed for more granular UI
         } catch (err) {
             console.error('Error fetching Google status:', err);
+        }
+    };
+
+    // API Key handlers
+    const fetchApiKeyStatus = async () => {
+        try {
+            const status = await apiKeyAPI.getStatus();
+            setHasApiKey(status.hasApiKey || false);
+            setMaskedKey(status.maskedKey || null);
+        } catch (err) {
+            console.error('Error fetching API key status:', err);
+        }
+    };
+
+    const handleSaveApiKey = async () => {
+        if (!apiKeyInput.trim()) {
+            alert('Please enter your OpenAI API key');
+            return;
+        }
+
+        try {
+            setSavingApiKey(true);
+            await apiKeyAPI.save(apiKeyInput.trim());
+            setApiKeyInput('');
+            setShowApiKeyInput(false);
+            await fetchApiKeyStatus();
+            alert('API key saved successfully!');
+        } catch (err) {
+            console.error('Error saving API key:', err);
+            alert(err.response?.data?.error || 'Failed to save API key');
+        } finally {
+            setSavingApiKey(false);
+        }
+    };
+
+    const handleDeleteApiKey = async () => {
+        if (!window.confirm('Remove your OpenAI API key? AI data extraction will stop working.')) {
+            return;
+        }
+
+        try {
+            await apiKeyAPI.delete();
+            setHasApiKey(false);
+            setMaskedKey(null);
+            setShowApiKeyInput(false);
+        } catch (err) {
+            console.error('Error removing API key:', err);
+            alert('Failed to remove API key');
         }
     };
 
@@ -200,6 +256,90 @@ const ExtractionFields = ({ onRefresh }) => {
                     {error}
                 </div>
             )}
+
+            {/* OpenAI API Key Settings */}
+            <div className="api-key-settings">
+                <h2>🔑 OpenAI API Key</h2>
+                <p className="settings-subtitle">
+                    Add your OpenAI API key to enable AI-powered data extraction from call transcripts
+                </p>
+
+                {!hasApiKey ? (
+                    <div className="connection-form">
+                        <div className="form-group">
+                            <label htmlFor="apiKey">OpenAI API Key</label>
+                            <input
+                                id="apiKey"
+                                type="password"
+                                placeholder="sk-proj-..."
+                                value={apiKeyInput}
+                                onChange={(e) => setApiKeyInput(e.target.value)}
+                                className="sheet-id-input"
+                            />
+                            <span className="help-text">
+                                Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a>
+                            </span>
+                        </div>
+                        <button
+                            className="btn-connect"
+                            onClick={handleSaveApiKey}
+                            disabled={savingApiKey || !apiKeyInput.trim()}
+                        >
+                            {savingApiKey ? 'Saving...' : 'Save API Key'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="connected-status">
+                        <div className="status-badge success">
+                            Connected
+                        </div>
+                        <div className="sheet-info">
+                            <p><strong>API Key:</strong> {maskedKey}</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {showApiKeyInput ? (
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input
+                                        type="password"
+                                        placeholder="sk-proj-..."
+                                        value={apiKeyInput}
+                                        onChange={(e) => setApiKeyInput(e.target.value)}
+                                        className="sheet-id-input"
+                                        style={{ width: '300px' }}
+                                    />
+                                    <button
+                                        className="btn-connect"
+                                        onClick={handleSaveApiKey}
+                                        disabled={savingApiKey || !apiKeyInput.trim()}
+                                        style={{ whiteSpace: 'nowrap' }}
+                                    >
+                                        {savingApiKey ? 'Saving...' : 'Update'}
+                                    </button>
+                                    <button
+                                        className="btn-secondary"
+                                        onClick={() => { setShowApiKeyInput(false); setApiKeyInput(''); }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    className="btn-secondary"
+                                    onClick={() => setShowApiKeyInput(true)}
+                                >
+                                    Change Key
+                                </button>
+                            )}
+                            <button
+                                className="btn-disconnect"
+                                onClick={handleDeleteApiKey}
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Google Sheets Settings */}
             <div className="google-sheets-settings">
